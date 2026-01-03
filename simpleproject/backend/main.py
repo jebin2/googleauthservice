@@ -19,7 +19,6 @@ from google_auth_service import (
     GoogleAuth,
     create_auth_middleware,
     RouteConfig,
-    GoogleUserInfo
 )
 
 # Load environment variables
@@ -35,53 +34,10 @@ if not JWT_SECRET:
     print("⚠️  WARNING: JWT_SECRET not set. Using default (NOT FOR PRODUCTION).")
     JWT_SECRET = "demo-secret-key-not-for-production-use"
 
-# In-memory user store (replace with real database in production)
-users_db: dict = {}
-
-# --- Database Callbacks ---
-
-async def load_user(user_id: str):
-    """Load user from in-memory store."""
-    return users_db.get(user_id)
-
-async def on_google_login(google_info: GoogleUserInfo):
-    """Create or update user on Google login."""
-    # Create user ID from Google ID
-    user_id = f"user_{google_info.google_id[:8]}"
-    
-    # Create/update user in memory store
-    if user_id not in users_db:
-        users_db[user_id] = {
-            "user_id": user_id,
-            "email": google_info.email,
-            "name": google_info.name,
-            "google_id": google_info.google_id,
-            "picture": google_info.picture,
-            "created_at": datetime.utcnow().isoformat(),
-            "token_version": 1,
-        }
-        print(f"✅ New user created: {google_info.email}")
-    else:
-        users_db[user_id]["name"] = google_info.name
-        users_db[user_id]["picture"] = google_info.picture
-        print(f"✅ User logged in: {google_info.email}")
-        
-    return users_db[user_id]
-    
-async def get_token_version(user_id: str) -> Optional[int]:
-    """Get current token version for user."""
-    user = users_db.get(user_id)
-    return user.get("token_version") if user else None
-
-async def invalidate_token(user_id: str):
-    """Invalidate current tokens by incrementing version."""
-    if user_id in users_db:
-        users_db[user_id]["token_version"] += 1
-        print(f"🔄 Token invalidated for {user_id} (Version: {users_db[user_id]['token_version']})")
-
 # --- Setup Google Auth Service ---
 
 # Initialize GoogleAuth (High-level API)
+# Uses "batteries-included" InMemoryUserStore by default
 auth = GoogleAuth(
     client_id=GOOGLE_CLIENT_ID,
     jwt_secret=JWT_SECRET,
@@ -105,20 +61,19 @@ app.add_middleware(
 # --- Add Auth Routes ---
 
 # This adds /auth/google, /auth/refresh, /auth/logout, /auth/me
-app.include_router(
-    auth.get_router(
-        user_saver=on_google_login,
-        user_loader=load_user,
-        token_version_getter=get_token_version,
-        token_invalidator=invalidate_token,
-    )
-)
+# No callbacks needed anymore - library handles user persistence
+app.include_router(auth.get_router())
 
 # --- Middleware for Route Protection ---
 
 # We still use middleware for protecting other routes
+# Note: middleware needs a user_loader only if we want to hydrate `request.user`
+# We can use auth.get_user which connects to the internal store
+async def library_user_loader(user_id: str):
+    return await auth.get_user(user_id)
+
 auth_middleware = create_auth_middleware(
-    user_loader=load_user,
+    user_loader=library_user_loader,
     jwt_secret=JWT_SECRET,
     route_config=RouteConfig(
         required=["/api/*"],
@@ -130,7 +85,6 @@ auth_middleware = create_auth_middleware(
 # Dependency to get current user
 async def get_current_user(request: Request):
     """Get authenticated user from request."""
-    # We can reuse the middleware's logic
     auth_header = request.headers.get("Authorization")
     
     # Attempt middleware authentication
@@ -142,11 +96,6 @@ async def get_current_user(request: Request):
     if result.is_authenticated:
         return result.user
         
-    # As a fallback for endpoints that might rely on cookie but are behind middleware
-    # (Middleware primarily checks Header, but let's check cookie if middleware failed/skipped)
-    # Actually, for consistency, the frontend Sends Bearer token for API calls.
-    # The cookie is strictly for SESSION RESTORATION (refresh).
-    
     if result.error:
          raise HTTPException(status_code=401, detail=result.error)
          
