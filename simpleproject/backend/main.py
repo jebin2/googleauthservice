@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 # Import from pip-installed google-auth-service package
 from google_auth_service import (
     GoogleAuth,
+    GoogleAuthMiddleware,
 )
 
 # Load environment variables
@@ -59,10 +60,10 @@ app.add_middleware(
 # Auth Middleware (From Library)
 # Automatically authenticates /api/* and adds user to request.state.user
 app.add_middleware(
-    auth.get_middleware(
-        protected_paths=["/api/*"],
-        public_paths=["/", "/health", "/auth/*"]
-    )
+    GoogleAuthMiddleware,
+    google_auth=auth,
+    protected_paths=["/api/*"],
+    public_paths=["/", "/health", "/auth/*"],
 )
 
 # --- Add Auth Routes ---
