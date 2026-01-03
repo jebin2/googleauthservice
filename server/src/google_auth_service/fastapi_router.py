@@ -81,78 +81,7 @@ class GoogleAuth:
                 
         return request.state.user
 
-    def get_middleware(
-        self, 
-        public_paths: List[str] = ["/", "/health", "/auth/*"],
-        protected_paths: List[str] = ["/api/*"],
-    ) -> Callable:
-        """
-        Get a Starlette/FastAPI middleware class to protect routes.
-        
-        Usage:
-            app.add_middleware(auth.get_middleware(public_paths=[...]))
-        """
-        from starlette.middleware.base import BaseHTTPMiddleware
-        from fastapi.responses import JSONResponse
-        from google_auth_service.middleware import AuthMiddlewareBase, RouteConfig
-        
-        # Internal loader that uses the store
-        async def _loader(user_id: str):
-            return await self.user_store.get(user_id)
-            
-        async def _version_getter(user: Any):
-            # Try dictionary access first, then attribute
-            user_id = getattr(user, "user_id", None) or user.get("user_id")
-            return await self.user_store.get_token_version(user_id)
-            
-        # Create the core logic directly with existing service instance
-        core_middleware = AuthMiddlewareBase(
-            user_loader=_loader,
-            jwt_service=self.jwt,
-            token_version_getter=_version_getter,
-            route_config=RouteConfig(
-                public=public_paths,
-                required=protected_paths,
-            )
-        )
-        
-        # Create the wrapper class
-        class GoogleAuthMiddleware(BaseHTTPMiddleware):
-            async def dispatch(self, request: Request, call_next):
-                if request.method == "OPTIONS":
-                    return await call_next(request)
-                    
-                auth_header = request.headers.get("Authorization")
-                
-                # Also check cookie if header missing (for browser nav to protected routes)
-                if not auth_header:
-                    cookie_token = request.cookies.get(self.cookie_name)
-                    if cookie_token:
-                        auth_header = f"Bearer {cookie_token}"
 
-                # Run core auth logic
-                result = await core_middleware.authenticate(
-                    path=request.url.path,
-                    auth_header=auth_header,
-                )
-                
-                if result.error:
-                    return JSONResponse(
-                        status_code=401,
-                        content={"detail": result.error},
-                    )
-                
-                # Attach user to request state
-                request.state.user = result.user
-                request.state.auth_result = result
-                
-                return await call_next(request)
-                
-        # Bind the cookie name to the class for access inside dispatch if needed (we used self.cookie_name closure above essentially, but explicit binding is safer if self changes which it won't here)
-        # Actually closure 'self' is captured.
-        GoogleAuthMiddleware.cookie_name = self.cookie_name
-        
-        return GoogleAuthMiddleware
 
     def get_router(
         self,
