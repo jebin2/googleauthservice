@@ -62,7 +62,7 @@ function App() {
 
       {!user ? (
         <div className="login-section">
-          <GoogleSignInButton width="300px" text="Sign in with Google" />
+          <GoogleSignInButton width={300} />
         </div>
       ) : (
         <div className="user-section">
