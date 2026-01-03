@@ -97,3 +97,10 @@ __all__ = [
     "create_auth_middleware",
     "AuthResult",
 ]
+
+# Optional FastAPI integration
+try:
+    from google_auth_service.fastapi_router import GoogleAuth
+    __all__.append("GoogleAuth")
+except ImportError:
+    pass
