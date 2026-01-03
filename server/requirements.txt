@@ -1,2 +1,6 @@
 google-auth>=2.0.0
 PyJWT>=2.8.0
+
+# Test dependencies (optional)
+# pytest>=7.0.0
+# pytest-asyncio>=0.21.0
