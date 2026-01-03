@@ -21,20 +21,27 @@ This library provides both **client** (TypeScript/React) and **server** (Python/
 - FastAPI middleware (database-agnostic)
 - Flexible route-based auth configuration
 
-## Quick Start
+## Installation
 
-### Client
+### Client (npm from GitHub)
 ```bash
-cd client
-npm install
-# Copy src/ to your project
+npm install github:jebin2/googleauthservice#main --workspace=client
+# or directly:
+npm install git+https://github.com/jebin2/googleauthservice.git#main
 ```
 
-### Server
+### Server (pip from GitHub)
 ```bash
-cd server
-pip install -r requirements.txt
-# Copy src/google_auth_service to your project
+pip install "google-auth-service @ git+https://github.com/jebin2/googleauthservice.git@main#subdirectory=server"
+```
+
+### Or Copy Source
+```bash
+# Client
+cp -r client/src/* /your/project/src/services/auth/
+
+# Server
+cp -r server/src/google_auth_service /your/project/
 ```
 
 ## Documentation

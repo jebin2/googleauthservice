@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "google-auth-service"
+version = "1.0.0"
+description = "Plug-and-play Google Sign-In server module for Python/FastAPI"
+readme = "SERVER-LINK.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+keywords = ["google", "auth", "oauth", "jwt", "fastapi"]
+authors = [
+    {name = "Jebin"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "google-auth>=2.0.0",
+    "PyJWT>=2.8.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/jebin2/googleauthservice"
+Repository = "https://github.com/jebin2/googleauthservice"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-dir]
+"" = "src"

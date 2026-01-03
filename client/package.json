@@ -1,9 +1,14 @@
 {
-    "name": "google-auth-service-client",
+    "name": "@jebin2/google-auth-service-client",
     "version": "1.0.0",
     "description": "Plug-and-play Google Sign-In client for React applications",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
+    "main": "src/index.ts",
+    "types": "src/index.ts",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/jebin2/googleauthservice.git",
+        "directory": "client"
+    },
     "scripts": {
         "build": "tsc",
         "dev": "tsc --watch"
@@ -16,7 +21,6 @@
         "typescript": "^5.0.0"
     },
     "files": [
-        "dist",
         "src"
     ],
     "keywords": [
@@ -26,5 +30,10 @@
         "react",
         "jwt"
     ],
-    "license": "MIT"
+    "author": "Jebin",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/jebin2/googleauthservice/issues"
+    },
+    "homepage": "https://github.com/jebin2/googleauthservice#readme"
 }
