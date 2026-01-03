@@ -1,0 +1,30 @@
+{
+    "name": "google-auth-service-client",
+    "version": "1.0.0",
+    "description": "Plug-and-play Google Sign-In client for React applications",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "dev": "tsc --watch"
+    },
+    "peerDependencies": {
+        "react": "^18.0.0"
+    },
+    "devDependencies": {
+        "@types/react": "^18.0.0",
+        "typescript": "^5.0.0"
+    },
+    "files": [
+        "dist",
+        "src"
+    ],
+    "keywords": [
+        "google",
+        "auth",
+        "sign-in",
+        "react",
+        "jwt"
+    ],
+    "license": "MIT"
+}

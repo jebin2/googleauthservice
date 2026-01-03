@@ -1,0 +1,2 @@
+google-auth>=2.0.0
+PyJWT>=2.8.0
