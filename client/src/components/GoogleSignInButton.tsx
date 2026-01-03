@@ -154,6 +154,8 @@ const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
     }
 
     // Native Google button (default) - just render the container
+    // IMPORTANT: Don't render any React children inside this div because
+    // Google's renderGoogleButton modifies the DOM and React gets confused
     return (
         <div
             ref={googleButtonRef}
@@ -164,9 +166,7 @@ const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
             }}
-        >
-            {!isReady && <span style={{ color: '#9ca3af', fontSize: '14px' }}>Loading...</span>}
-        </div>
+        />
     );
 };
 
