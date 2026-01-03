@@ -172,7 +172,6 @@ VITE_API_BASE_URL=https://api.yoursite.com
 ### User Data
 - `getCurrentUser()` → `Promise<GoogleUser | null>`
 - `fetchUserInfo()` → `Promise<GoogleUser | null>` - Refresh from server
-- `updateUserCredits(credits)` - Update local credits
 
 ### API Calls
 - `authenticatedFetch(url, options)` - Auto-adds token, handles 401

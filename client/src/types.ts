@@ -58,7 +58,6 @@ export interface GoogleUser {
     email: string;
     name?: string | null;
     profilePicture?: string | null;
-    credits?: number;
     isNewUser: boolean;
 }
 
@@ -83,7 +82,6 @@ export interface AuthApiResponse {
     user_id: string;
     email: string;
     name?: string | null;
-    credits?: number;
     is_new_user: boolean;
 }
 
@@ -94,7 +92,6 @@ export interface UserInfoResponse {
     user_id: string;
     email: string;
     name?: string | null;
-    credits?: number;
     profile_picture?: string | null;
 }
 

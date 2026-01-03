@@ -5,7 +5,7 @@
  * 
  * @example
  * ```typescript
- * import { configureGoogleAuth, initializeAuth, GoogleSignInButton } from 'google-auth-service-client';
+ * import { configureGoogleAuth, initializeAuth, GoogleSignInButton } from '@jebin2/googleauthservice/client/src';
  * 
  * // Configure on app start
  * configureGoogleAuth({
@@ -32,7 +32,6 @@ export {
     initializeAuth,
     authenticatedFetch,
     onAuthStateChange,
-    updateUserCredits,
     renderGoogleButton,
     getAvatarCacheKey,
 } from './googleAuthService';

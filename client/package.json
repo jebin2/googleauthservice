@@ -1,5 +1,5 @@
 {
-    "name": "@jebin2/google-auth-service-client",
+    "name": "@jebin2/googleauthservice",
     "version": "1.0.0",
     "description": "Plug-and-play Google Sign-In client for React applications",
     "main": "src/index.ts",

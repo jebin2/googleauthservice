@@ -37,7 +37,19 @@ class BaseUserStore(ABC):
 class InMemoryUserStore(BaseUserStore):
     """
     Simple in-memory user storage.
-    WARNING: Data is lost when the server restarts.
+    
+    WARNING: This is for development/testing only.
+    All user data is LOST when the server restarts.
+    
+    For production, implement BaseUserStore with your database:
+    
+        class PostgresUserStore(BaseUserStore):
+            async def get(self, user_id: str):
+                return await db.fetch_user(user_id)
+            
+            async def save(self, google_info: GoogleUserInfo):
+                return await db.upsert_user(google_info)
+            ...
     """
     
     def __init__(self):

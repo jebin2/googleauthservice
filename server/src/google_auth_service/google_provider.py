@@ -18,7 +18,7 @@ Usage:
     print(user_info.email, user_info.google_id, user_info.name)
 
 Environment Variables:
-    AUTH_SIGN_IN_GOOGLE_CLIENT_ID: Your Google OAuth 2.0 Client ID
+    GOOGLE_CLIENT_ID: Your Google OAuth 2.0 Client ID
 
 Dependencies:
     google-auth>=2.0.0
@@ -102,20 +102,21 @@ class GoogleAuthService:
         
         Args:
             client_id: Google OAuth 2.0 Client ID. If not provided,
-                      falls back to AUTH_SIGN_IN_GOOGLE_CLIENT_ID env var.
+                      falls back to GOOGLE_CLIENT_ID env var.
             clock_skew_seconds: Allowed clock skew in seconds for token
                                validation (default: 0).
         
         Raises:
             ConfigurationError: If no client_id is provided or found.
         """
-        self.client_id = client_id or os.getenv("AUTH_SIGN_IN_GOOGLE_CLIENT_ID")
+        # Check both env var names for compatibility
+        self.client_id = client_id or os.getenv("GOOGLE_CLIENT_ID") or os.getenv("AUTH_SIGN_IN_GOOGLE_CLIENT_ID")
         self.clock_skew_seconds = clock_skew_seconds
         
         if not self.client_id:
             raise ConfigurationError(
                 "Google Client ID is required. Either pass client_id parameter "
-                "or set AUTH_SIGN_IN_GOOGLE_CLIENT_ID environment variable."
+                "or set GOOGLE_CLIENT_ID environment variable."
             )
         
         logger.info(f"GoogleAuthService initialized with client_id: {self.client_id[:20]}...")
@@ -207,7 +208,7 @@ def get_google_auth_service() -> GoogleAuthService:
         GoogleAuthService: The default service instance.
     
     Raises:
-        ConfigurationError: If AUTH_SIGN_IN_GOOGLE_CLIENT_ID is not set.
+        ConfigurationError: If GOOGLE_CLIENT_ID is not set.
     """
     global _default_service
     if _default_service is None:

@@ -107,23 +107,6 @@ function notifyAuthStateChange(user: GoogleUser | null): void {
 }
 
 /**
- * Update user credits from API response (avoids extra API call)
- * Call this when you receive credits_remaining from job APIs
- */
-export async function updateUserCredits(newCredits: number): Promise<void> {
-    const user = getCurrentUserSync();
-    if (!user) return;
-
-    const updatedUser: GoogleUser = {
-        ...user,
-        credits: newCredits,
-    };
-
-    await multiSet(getStorageKeys().user, updatedUser);
-    notifyAuthStateChange(updatedUser);
-}
-
-/**
  * Initialize Google Sign-In library
  */
 export function initGoogleAuth(): Promise<void> {
@@ -182,7 +165,6 @@ async function handleGoogleCredentialResponse(response: GoogleCredentialResponse
                 userId: authResponse.user_id,
                 email: authResponse.email,
                 name: authResponse.name,
-                credits: authResponse.credits,
                 isNewUser: authResponse.is_new_user,
             };
 
@@ -387,7 +369,7 @@ export async function refreshToken(): Promise<boolean> {
 }
 
 /**
- * Fetch current user info from server (refreshes credits, etc.)
+ * Fetch current user info from server
  */
 export async function fetchUserInfo(): Promise<GoogleUser | null> {
     const token = getAccessToken();
@@ -414,7 +396,6 @@ export async function fetchUserInfo(): Promise<GoogleUser | null> {
             email: data.email,
             name: data.name,
             profilePicture: data.profile_picture,
-            credits: data.credits,
             isNewUser: false,
         };
 
