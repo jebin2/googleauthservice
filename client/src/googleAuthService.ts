@@ -24,7 +24,7 @@
  */
 
 import { multiSet, multiGet, multiGetSync, multiRemove } from './multiStorageService';
-export type {
+import type {
     GoogleUser,
     GoogleAuthConfig,
     GoogleButtonConfig,
