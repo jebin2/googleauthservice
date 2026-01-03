@@ -48,15 +48,6 @@ app = FastAPI(
     description="Simple demo of google-auth-service library",
 )
 
-# CORS for frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your frontend URL
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Auth Middleware (From Library)
 # Automatically authenticates /api/* and adds user to request.state.user
 app.add_middleware(
@@ -64,6 +55,15 @@ app.add_middleware(
     google_auth=auth,
     protected_paths=["/api/*"],
     public_paths=["/", "/health", "/auth/*"],
+)
+
+# CORS for frontend (Outer-most middleware to handle all responses)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"], # Be specific if possible for credentials
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # --- Add Auth Routes ---
