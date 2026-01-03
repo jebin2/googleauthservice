@@ -35,6 +35,17 @@ import type {
     PromptNotification,
 } from './types';
 
+export type {
+    GoogleUser,
+    GoogleAuthConfig,
+    GoogleButtonConfig,
+    AuthApiResponse,
+    UserInfoResponse,
+    AuthCallback,
+    GoogleCredentialResponse,
+    PromptNotification,
+};
+
 // Configuration
 let CONFIG: GoogleAuthConfig = {
     clientId: '',
