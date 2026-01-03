@@ -94,7 +94,7 @@ class GoogleAuth:
         """
         from starlette.middleware.base import BaseHTTPMiddleware
         from fastapi.responses import JSONResponse
-        from google_auth_service.middleware import create_auth_middleware, RouteConfig
+        from google_auth_service.middleware import AuthMiddlewareBase, RouteConfig
         
         # Internal loader that uses the store
         async def _loader(user_id: str):
@@ -105,8 +105,8 @@ class GoogleAuth:
             user_id = getattr(user, "user_id", None) or user.get("user_id")
             return await self.user_store.get_token_version(user_id)
             
-        # Create the core logic
-        core_middleware = create_auth_middleware(
+        # Create the core logic directly with existing service instance
+        core_middleware = AuthMiddlewareBase(
             user_loader=_loader,
             jwt_service=self.jwt,
             token_version_getter=_version_getter,
