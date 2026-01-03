@@ -17,8 +17,6 @@ from dotenv import load_dotenv
 # Import from pip-installed google-auth-service package
 from google_auth_service import (
     GoogleAuth,
-    create_auth_middleware,
-    RouteConfig,
 )
 
 # Load environment variables
@@ -58,48 +56,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Auth Middleware (From Library)
+# Automatically authenticates /api/* and adds user to request.state.user
+app.add_middleware(
+    auth.get_middleware(
+        protected_paths=["/api/*"],
+        public_paths=["/", "/health", "/auth/*"]
+    )
+)
+
 # --- Add Auth Routes ---
 
 # This adds /auth/google, /auth/refresh, /auth/logout, /auth/me
 # No callbacks needed anymore - library handles user persistence
 app.include_router(auth.get_router())
-
-# --- Middleware for Route Protection ---
-
-# We still use middleware for protecting other routes
-# Note: middleware needs a user_loader only if we want to hydrate `request.user`
-# We can use auth.get_user which connects to the internal store
-async def library_user_loader(user_id: str):
-    return await auth.get_user(user_id)
-
-auth_middleware = create_auth_middleware(
-    user_loader=library_user_loader,
-    jwt_secret=JWT_SECRET,
-    route_config=RouteConfig(
-        required=["/api/*"],
-        public=["/", "/health", "/auth/*"],
-    ),
-)
-
-
-# Dependency to get current user
-async def get_current_user(request: Request):
-    """Get authenticated user from request."""
-    auth_header = request.headers.get("Authorization")
-    
-    # Attempt middleware authentication
-    result = await auth_middleware.authenticate(
-        path=request.url.path,
-        auth_header=auth_header,
-    )
-    
-    if result.is_authenticated:
-        return result.user
-        
-    if result.error:
-         raise HTTPException(status_code=401, detail=result.error)
-         
-    raise HTTPException(status_code=401, detail="Not authenticated")
 
 
 # Routes
@@ -116,7 +86,7 @@ async def health():
 
 
 @app.get("/api/protected")
-async def protected_route(user: dict = Depends(get_current_user)):
+async def protected_route(user: dict = Depends(auth.current_user)):
     """Example protected API endpoint."""
     return {
         "message": f"Hello {user.get('name') or user['email']}!",
