@@ -95,7 +95,11 @@ class GoogleAuth:
             return {
                 "success": True, 
                 "access_token": access_token,
-                "user": user
+                "user_id": user_id,
+                "email": email,
+                "name": getattr(user, "name", None) or user.get("name"),
+                "picture": getattr(user, "picture", None) or user.get("picture"),
+                "is_new_user": getattr(google_info, "is_new_user", False), # If tracked
             }
 
         @router.post("/refresh")
@@ -126,10 +130,17 @@ class GoogleAuth:
                 max_age=self.jwt.refresh_expiry_days * 24 * 60 * 60
             )
             
+            # Extract user fields for flat response
+            user_id = getattr(user, "user_id", None) or user.get("user_id")
+            email = getattr(user, "email", None) or user.get("email")
+            
             return {
                 "success": True, 
                 "access_token": new_token,
-                "user": user
+                "user_id": user_id,
+                "email": email,
+                "name": getattr(user, "name", None) or user.get("name"),
+                "picture": getattr(user, "picture", None) or user.get("picture"),
             }
             
         @router.post("/logout")
