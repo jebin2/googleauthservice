@@ -67,6 +67,17 @@ async def on_google_login(google_info: GoogleUserInfo):
         print(f"✅ User logged in: {google_info.email}")
         
     return users_db[user_id]
+    
+async def get_token_version(user_id: str) -> Optional[int]:
+    """Get current token version for user."""
+    user = users_db.get(user_id)
+    return user.get("token_version") if user else None
+
+async def invalidate_token(user_id: str):
+    """Invalidate current tokens by incrementing version."""
+    if user_id in users_db:
+        users_db[user_id]["token_version"] += 1
+        print(f"🔄 Token invalidated for {user_id} (Version: {users_db[user_id]['token_version']})")
 
 # --- Setup Google Auth Service ---
 
@@ -98,6 +109,8 @@ app.include_router(
     auth.get_router(
         user_saver=on_google_login,
         user_loader=load_user,
+        token_version_getter=get_token_version,
+        token_invalidator=invalidate_token,
     )
 )
 
