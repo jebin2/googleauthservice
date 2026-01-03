@@ -10,19 +10,47 @@ const DB_NAME = 'google_auth_storage';
 const DB_VERSION = 1;
 const STORE_NAME = 'keyvalue';
 
+let dbInstance: IDBDatabase | null = null;
 let dbPromise: Promise<IDBDatabase> | null = null;
 
 /**
  * Initialize IndexedDB
  */
 function getDB(): Promise<IDBDatabase> {
+    if (dbInstance && !dbInstance.objectStoreNames.contains(STORE_NAME)) {
+        // Invalid state, close and reopen
+        dbInstance.close();
+        dbInstance = null;
+        dbPromise = null;
+    }
+
     if (dbPromise) return dbPromise;
 
     dbPromise = new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
 
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => {
+            dbPromise = null;
+            reject(request.error);
+        };
+
+        request.onsuccess = () => {
+            const db = request.result;
+            dbInstance = db;
+
+            db.onversionchange = () => {
+                db.close();
+                dbInstance = null;
+                dbPromise = null;
+            };
+
+            db.onclose = () => {
+                dbInstance = null;
+                dbPromise = null;
+            };
+
+            resolve(db);
+        };
 
         request.onupgradeneeded = (event) => {
             const db = (event.target as IDBOpenDBRequest).result;
