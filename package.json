@@ -1,0 +1,14 @@
+{
+    "name": "@jebin2/googleauthservice",
+    "version": "1.0.0",
+    "description": "Plug-and-play Google Sign-In for web applications",
+    "workspaces": [
+        "client"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/jebin2/googleauthservice.git"
+    },
+    "author": "Jebin",
+    "license": "MIT"
+}
