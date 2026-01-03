@@ -57,7 +57,6 @@ from google_auth_service.route_matcher import (
 )
 
 from google_auth_service.middleware import (
-    create_auth_middleware,
     AuthResult,
 )
 
@@ -94,7 +93,6 @@ __all__ = [
     "RouteConfig",
     
     # Middleware
-    "create_auth_middleware",
     "AuthResult",
 ]
 
