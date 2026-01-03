@@ -26,8 +26,15 @@ cp .env.example .env
 Edit `.env` with your values:
 ```env
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
-JWT_SECRET=your-super-secret-key-at-least-32-characters
+JWT_SECRET=<generate-with-command-below>
 ```
+
+**Generate a secure JWT secret:**
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(64))"
+```
+
+Copy the output and paste it as `JWT_SECRET` value.
 
 ---
 
