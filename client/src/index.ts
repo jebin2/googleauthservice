@@ -55,3 +55,6 @@ export type {
 // Components
 export { default as GoogleSignInButton } from './components/GoogleSignInButton';
 export { default as UserAvatar, clearCachedAvatar } from './components/UserAvatar';
+
+// Context
+export { GoogleAuthProvider, useGoogleAuth } from './contexts/GoogleAuthContext';

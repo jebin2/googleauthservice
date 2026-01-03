@@ -1,40 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import './App.css'
 
 // Import from npm-installed google-auth-service
 import {
-  configureGoogleAuth,
-  initializeAuth,
-  onAuthStateChange,
-  signOut,
+  useGoogleAuth,
   authenticatedFetch,
   GoogleSignInButton,
   UserAvatar,
-  GoogleUser,
 } from '@jebin2/googleauthservice/client/src'
 
-// Configure Google Auth
-configureGoogleAuth({
-  clientId: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID',
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
-})
-
 function App() {
-  const [user, setUser] = useState<GoogleUser | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { user, loading, signOut } = useGoogleAuth()
   const [apiResult, setApiResult] = useState<string | null>(null)
-
-  useEffect(() => {
-    // Subscribe to auth state changes
-    const unsubscribe = onAuthStateChange(setUser)
-
-    // Initialize (restores session from cookie)
-    initializeAuth()
-      .then(setUser)
-      .finally(() => setLoading(false))
-
-    return unsubscribe
-  }, [])
 
   const handleTestApi = async () => {
     try {
