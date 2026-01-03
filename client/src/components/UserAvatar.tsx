@@ -111,6 +111,7 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
 
     // Generate a consistent color based on email
     const getAvatarColor = (): string => {
+        if (!email) return avatarColors[0];
         const index = email.charCodeAt(0) % avatarColors.length;
         return avatarColors[index];
     };
