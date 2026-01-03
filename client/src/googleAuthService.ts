@@ -116,6 +116,20 @@ export async function updateUserCredits(newCredits: number): Promise<void> {
  * Initialize Google Sign-In library
  */
 export function initGoogleAuth(): Promise<void> {
+    // Listen for storage changes from other tabs
+    try {
+        window.addEventListener('storage', (event) => {
+            if (event.key === getStorageKeys().user && event.newValue === null) {
+                // User logged out in another tab
+                console.log('Logged out from another tab');
+                accessToken = null;
+                notifyAuthStateChange(null);
+            }
+        });
+    } catch (e) {
+        // Ignore
+    }
+
     return new Promise((resolve, reject) => {
         if (!CONFIG.clientId) {
             reject(new Error('Google Client ID not configured. Call configureGoogleAuth first.'));
