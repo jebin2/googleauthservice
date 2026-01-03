@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from google_auth_service.google_provider import GoogleAuthService, GoogleUserInfo
 from google_auth_service.jwt_provider import JWTService, TokenPayload, TokenExpiredError, InvalidTokenError
+from google_auth_service.user_store import BaseUserStore, InMemoryUserStore
 
 class GoogleAuth:
     """
@@ -18,13 +19,14 @@ class GoogleAuth:
     
     Usage:
         auth = GoogleAuth(client_id="...", jwt_secret="...")
-        app.include_router(auth.get_router(on_login=..., load_user=...))
+        app.include_router(auth.get_router()) 
     """
     
     def __init__(
         self,
         client_id: str,
         jwt_secret: str,
+        user_store: Optional[BaseUserStore] = None,
         jwt_algorithm: str = "HS256",
         access_expiry_minutes: int = 15,
         refresh_expiry_days: int = 7,
@@ -39,26 +41,23 @@ class GoogleAuth:
             access_expiry_minutes=access_expiry_minutes,
             refresh_expiry_days=refresh_expiry_days
         )
+        self.user_store = user_store or InMemoryUserStore()
         self.cookie_name = cookie_name
         self.cookie_secure = cookie_secure
         self.cookie_samesite = cookie_samesite
 
+    async def get_user(self, user_id: str) -> Optional[Any]:
+        """Helper to get user from store directly."""
+        return await self.user_store.get(user_id)
+
     def get_router(
         self,
-        user_saver: Callable[[GoogleUserInfo], Awaitable[Any]],
-        user_loader: Callable[[str], Awaitable[Optional[Any]]],
-        token_version_getter: Optional[Callable[[str], Awaitable[Optional[int]]]] = None,
-        token_invalidator: Optional[Callable[[str], Awaitable[None]]] = None,
         prefix: str = "/auth",
     ) -> APIRouter:
         """
         Create a FastAPI router with auth endpoints.
         
         Args:
-            user_saver: Async func to save/update user from Google info.
-            user_loader: Async func to load user by ID.
-            token_version_getter: Async func to get current token version for user.
-            token_invalidator: Async func to increment/invalidate user token version.
             prefix: URL prefix for the router (default: /auth)
         """
         router = APIRouter(prefix=prefix, tags=["Authentication"])
@@ -74,8 +73,8 @@ class GoogleAuth:
             except Exception as e:
                 raise HTTPException(status_code=401, detail=f"Invalid Google token: {str(e)}")
             
-            # 2. Save/Update User via callback
-            user = await user_saver(google_info)
+            # 2. Save/Update User via store
+            user = await self.user_store.save(google_info)
             if not user:
                 raise HTTPException(status_code=500, detail="Failed to save user")
                 
@@ -83,10 +82,8 @@ class GoogleAuth:
             user_id = getattr(user, "user_id", None) or user.get("user_id")
             email = getattr(user, "email", None) or user.get("email")
             
-            # Get current token version if supported
-            token_version = None
-            if token_version_getter:
-                token_version = await token_version_getter(user_id)
+            # Get current token version using store
+            token_version = await self.user_store.get_token_version(user_id)
 
             # 3. Create Access Token
             access_token = self.jwt.create_access_token(
@@ -127,21 +124,18 @@ class GoogleAuth:
                 raise HTTPException(status_code=401, detail="Invalid session")
             
             # Strict Token Version Check
-            if token_version_getter:
-                current_version = await token_version_getter(payload.user_id)
-                if current_version is not None and payload.version != current_version:
-                     response.delete_cookie(self.cookie_name)
-                     raise HTTPException(status_code=401, detail="Session revoked")
+            current_version = await self.user_store.get_token_version(payload.user_id)
+            if current_version is not None and payload.version != current_version:
+                    response.delete_cookie(self.cookie_name)
+                    raise HTTPException(status_code=401, detail="Session revoked")
 
             # Load user to ensure they still exist
-            user = await user_loader(payload.user_id)
+            user = await self.user_store.get(payload.user_id)
             if not user:
                  raise HTTPException(status_code=401, detail="User not found")
 
             # Create new token with current version
-            token_version = payload.version
-            if token_version_getter:
-                 token_version = await token_version_getter(payload.user_id)
+            token_version = await self.user_store.get_token_version(payload.user_id)
 
             new_token = self.jwt.create_access_token(
                 user_id=payload.user_id, 
@@ -173,15 +167,14 @@ class GoogleAuth:
             
         @router.post("/logout")
         async def logout(response: Response, request: Request):
-            # Invalidate backend token if callback provided
-            if token_invalidator:
-                token = request.cookies.get(self.cookie_name)
-                if token:
-                    try:
-                        payload = self.jwt.verify_token(token)
-                        await token_invalidator(payload.user_id)
-                    except:
-                        pass # Ignore invalid tokens during logout
+            # Invalidate backend token
+            token = request.cookies.get(self.cookie_name)
+            if token:
+                try:
+                    payload = self.jwt.verify_token(token)
+                    await self.user_store.invalidate_token(payload.user_id)
+                except:
+                    pass # Ignore invalid tokens during logout
             
             response.delete_cookie(self.cookie_name)
             return {"success": True, "message": "Logged out"}
@@ -205,12 +198,11 @@ class GoogleAuth:
                 raise HTTPException(status_code=401, detail="Invalid token")
 
             # Strict Token Version Check
-            if token_version_getter:
-                current_version = await token_version_getter(payload.user_id)
-                if current_version is not None and payload.version != current_version:
-                     raise HTTPException(status_code=401, detail="Session revoked")
+            current_version = await self.user_store.get_token_version(payload.user_id)
+            if current_version is not None and payload.version != current_version:
+                    raise HTTPException(status_code=401, detail="Session revoked")
                 
-            user = await user_loader(payload.user_id)
+            user = await self.user_store.get(payload.user_id)
             if not user:
                 raise HTTPException(status_code=401, detail="User not found")
                 
