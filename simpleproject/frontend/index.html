@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Auth Demo</title>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #1f2937;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 30px;
+        }
+        
+        #login-section, #user-section {
+            display: none;
+        }
+        
+        #login-section.active, #user-section.active {
+            display: block;
+        }
+        
+        .google-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 14px 24px;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: #374151;
+            transition: all 0.3s;
+        }
+        
+        .google-btn:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .google-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+        
+        .user-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+        }
+        
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        .user-name {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .user-email {
+            color: #6b7280;
+        }
+        
+        .api-result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f3f4f6;
+            border-radius: 12px;
+            text-align: left;
+            font-family: monospace;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-outline {
+            background: white;
+            border: 2px solid #e5e7eb;
+            color: #374151;
+        }
+        
+        .btn-outline:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+        
+        .error {
+            color: #ef4444;
+            margin-top: 15px;
+            padding: 10px;
+            background: #fef2f2;
+            border-radius: 8px;
+        }
+        
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Google Auth Demo</h1>
+        <p class="subtitle">Testing google-auth-service library</p>
+        
+        <!-- Login Section -->
+        <div id="login-section" class="active">
+            <div id="google-signin-btn"></div>
+            <button class="google-btn" onclick="manualSignIn()" style="margin-top: 10px;">
+                <svg viewBox="0 0 18 18">
+                    <path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18Z"/>
+                    <path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17Z"/>
+                    <path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07Z"/>
+                    <path fill="#EA4335" d="M8.98 3.58c1.16 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.9Z"/>
+                </svg>
+                Sign in with Google
+            </button>
+            <div id="login-error" class="error" style="display: none;"></div>
+        </div>
+        
+        <!-- User Section -->
+        <div id="user-section">
+            <div class="user-card">
+                <div class="avatar" id="user-avatar">?</div>
+                <div class="user-name" id="user-name">Loading...</div>
+                <div class="user-email" id="user-email"></div>
+            </div>
+            
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="callProtectedApi()">Test API</button>
+                <button class="btn btn-outline" onclick="signOut()">Sign Out</button>
+            </div>
+            
+            <div class="api-result" id="api-result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = 'http://localhost:8000';
+        const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // Replace this!
+        
+        // State
+        let accessToken = null;
+        let currentUser = null;
+        
+        // Initialize Google Sign-In
+        function initGoogleAuth() {
+            if (!window.google) {
+                setTimeout(initGoogleAuth, 100);
+                return;
+            }
+            
+            google.accounts.id.initialize({
+                client_id: GOOGLE_CLIENT_ID,
+                callback: handleGoogleCallback,
+                auto_select: false,
+            });
+            
+            // Render button
+            google.accounts.id.renderButton(
+                document.getElementById('google-signin-btn'),
+                { theme: 'outline', size: 'large', width: '100%', shape: 'pill' }
+            );
+        }
+        
+        // Handle Google Sign-In callback
+        async function handleGoogleCallback(response) {
+            showLoading(true);
+            hideError();
+            
+            try {
+                const res = await fetch(`${API_BASE_URL}/auth/google`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id_token: response.credential }),
+                });
+                
+                const data = await res.json();
+                
+                if (!res.ok) {
+                    throw new Error(data.detail || 'Authentication failed');
+                }
+                
+                // Success!
+                accessToken = data.access_token;
+                currentUser = data;
+                
+                // Save to localStorage
+                localStorage.setItem('access_token', accessToken);
+                localStorage.setItem('user', JSON.stringify(data));
+                
+                showUserSection(data);
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // Manual sign-in trigger
+        function manualSignIn() {
+            if (window.google?.accounts?.id) {
+                google.accounts.id.prompt();
+            }
+        }
+        
+        // Show user section
+        function showUserSection(user) {
+            document.getElementById('login-section').classList.remove('active');
+            document.getElementById('user-section').classList.add('active');
+            
+            document.getElementById('user-name').textContent = user.name || 'User';
+            document.getElementById('user-email').textContent = user.email;
+            
+            const avatar = document.getElementById('user-avatar');
+            const initial = (user.name || user.email)[0].toUpperCase();
+            avatar.textContent = initial;
+        }
+        
+        // Sign out
+        function signOut() {
+            accessToken = null;
+            currentUser = null;
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user');
+            
+            document.getElementById('user-section').classList.remove('active');
+            document.getElementById('login-section').classList.add('active');
+            document.getElementById('api-result').style.display = 'none';
+            
+            if (window.google?.accounts?.id) {
+                google.accounts.id.disableAutoSelect();
+            }
+        }
+        
+        // Call protected API
+        async function callProtectedApi() {
+            if (!accessToken) {
+                showError('Not authenticated');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/protected`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` },
+                });
+                
+                const data = await res.json();
+                
+                const resultEl = document.getElementById('api-result');
+                resultEl.style.display = 'block';
+                resultEl.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                showError(error.message);
+            }
+        }
+        
+        // UI helpers
+        function showLoading(loading) {
+            document.querySelector('.container').classList.toggle('loading', loading);
+        }
+        
+        function showError(message) {
+            const errorEl = document.getElementById('login-error');
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+        
+        function hideError() {
+            document.getElementById('login-error').style.display = 'none';
+        }
+        
+        // Check for existing session on load
+        function checkExistingSession() {
+            const token = localStorage.getItem('access_token');
+            const userStr = localStorage.getItem('user');
+            
+            if (token && userStr) {
+                accessToken = token;
+                currentUser = JSON.parse(userStr);
+                showUserSection(currentUser);
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkExistingSession();
+            initGoogleAuth();
+        });
+    </script>
+</body>
+</html>
