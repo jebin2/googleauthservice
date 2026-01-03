@@ -46,9 +46,113 @@ class GoogleAuth:
         self.cookie_secure = cookie_secure
         self.cookie_samesite = cookie_samesite
 
-    async def get_user(self, user_id: str) -> Optional[Any]:
-        """Helper to get user from store directly."""
-        return await self.user_store.get(user_id)
+    async def current_user(self, request: Request) -> Any:
+        """
+        FastAPI dependency to get the authenticated user.
+        Assumes auth middleware has already run and populated request.state.user.
+        """
+        if not hasattr(request.state, "user") or not request.state.user:
+            # Fallback: Validation logic if middleware wasn't used or skipped
+            # Useful for routes not covered by middleware config
+            token = request.cookies.get(self.cookie_name)
+            if not token:
+                auth_header = request.headers.get("Authorization")
+                if auth_header and auth_header.startswith("Bearer "):
+                    token = auth_header.split(" ")[1]
+            
+            if not token:
+                raise HTTPException(status_code=401, detail="Not authenticated")
+                
+            try:
+                payload = self.jwt.verify_token(token)
+                
+                # Check version
+                current_version = await self.user_store.get_token_version(payload.user_id)
+                if current_version is not None and payload.version != current_version:
+                    raise HTTPException(status_code=401, detail="Session revoked")
+                    
+                user = await self.user_store.get(payload.user_id)
+                if not user:
+                    raise HTTPException(status_code=401, detail="User not found")
+                    
+                return user
+            except Exception:
+                raise HTTPException(status_code=401, detail="Invalid token")
+                
+        return request.state.user
+
+    def get_middleware(
+        self, 
+        public_paths: List[str] = ["/", "/health", "/auth/*"],
+        protected_paths: List[str] = ["/api/*"],
+    ) -> Callable:
+        """
+        Get a Starlette/FastAPI middleware class to protect routes.
+        
+        Usage:
+            app.add_middleware(auth.get_middleware(public_paths=[...]))
+        """
+        from starlette.middleware.base import BaseHTTPMiddleware
+        from fastapi.responses import JSONResponse
+        from google_auth_service.middleware import create_auth_middleware, RouteConfig
+        
+        # Internal loader that uses the store
+        async def _loader(user_id: str):
+            return await self.user_store.get(user_id)
+            
+        async def _version_getter(user: Any):
+            # Try dictionary access first, then attribute
+            user_id = getattr(user, "user_id", None) or user.get("user_id")
+            return await self.user_store.get_token_version(user_id)
+            
+        # Create the core logic
+        core_middleware = create_auth_middleware(
+            user_loader=_loader,
+            jwt_service=self.jwt,
+            token_version_getter=_version_getter,
+            route_config=RouteConfig(
+                public=public_paths,
+                required=protected_paths,
+            )
+        )
+        
+        # Create the wrapper class
+        class GoogleAuthMiddleware(BaseHTTPMiddleware):
+            async def dispatch(self, request: Request, call_next):
+                if request.method == "OPTIONS":
+                    return await call_next(request)
+                    
+                auth_header = request.headers.get("Authorization")
+                
+                # Also check cookie if header missing (for browser nav to protected routes)
+                if not auth_header:
+                    cookie_token = request.cookies.get(self.cookie_name)
+                    if cookie_token:
+                        auth_header = f"Bearer {cookie_token}"
+
+                # Run core auth logic
+                result = await core_middleware.authenticate(
+                    path=request.url.path,
+                    auth_header=auth_header,
+                )
+                
+                if result.error:
+                    return JSONResponse(
+                        status_code=401,
+                        content={"detail": result.error},
+                    )
+                
+                # Attach user to request state
+                request.state.user = result.user
+                request.state.auth_result = result
+                
+                return await call_next(request)
+                
+        # Bind the cookie name to the class for access inside dispatch if needed (we used self.cookie_name closure above essentially, but explicit binding is safer if self changes which it won't here)
+        # Actually closure 'self' is captured.
+        GoogleAuthMiddleware.cookie_name = self.cookie_name
+        
+        return GoogleAuthMiddleware
 
     def get_router(
         self,
@@ -181,10 +285,14 @@ class GoogleAuth:
             
         @router.get("/me")
         async def get_me(request: Request):
-            # This is a bit redundant if we have a dependency, but good for client lib
+            # We can now use self.current_user if we want, but explicit is fine to allow logic reuse if needed
+            # Or simplified:
+            # return await self.current_user(request)
+            
+            # But let's keep robust logic here for safety
+            
             token = request.cookies.get(self.cookie_name)
             if not token:
-                # Fallback to Header if cookie missing (for API calls not from browser?)
                 auth = request.headers.get("Authorization")
                 if auth and auth.startswith("Bearer "):
                     token = auth.split(" ")[1]
@@ -197,7 +305,6 @@ class GoogleAuth:
             except Exception:
                 raise HTTPException(status_code=401, detail="Invalid token")
 
-            # Strict Token Version Check
             current_version = await self.user_store.get_token_version(payload.user_id)
             if current_version is not None and payload.version != current_version:
                     raise HTTPException(status_code=401, detail="Session revoked")
