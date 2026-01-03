@@ -106,7 +106,10 @@ const UserAvatar: React.FC<UserAvatarProps> = ({
         if (name) {
             return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
         }
-        return email[0].toUpperCase();
+        if (email) {
+            return email[0].toUpperCase();
+        }
+        return '?';
     };
 
     // Generate a consistent color based on email
