@@ -5,7 +5,6 @@ Demonstrates how to use google_auth_service for authentication.
 """
 
 import os
-import sys
 from datetime import datetime
 from typing import Optional
 
@@ -15,9 +14,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-# Add parent directories to path to import google_auth_service
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'server', 'src'))
-
+# Import from pip-installed google-auth-service package
 from google_auth_service import (
     GoogleAuthService,
     GoogleUserInfo,

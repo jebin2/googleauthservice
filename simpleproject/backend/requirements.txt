@@ -1,5 +1,6 @@
 fastapi>=0.100.0
 uvicorn>=0.23.0
-google-auth>=2.0.0
-PyJWT>=2.8.0
 python-dotenv>=1.0.0
+
+# Google Auth Service from GitHub
+google-auth-service @ git+https://github.com/jebin2/googleauthservice.git@main#subdirectory=server
