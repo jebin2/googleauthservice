@@ -68,7 +68,7 @@ class GoogleAuth:
                 
                 # Check version
                 current_version = await self.user_store.get_token_version(payload.user_id)
-                if current_version is not None and payload.version != current_version:
+                if current_version is not None and payload.token_version != current_version:
                     raise HTTPException(status_code=401, detail="Session revoked")
                     
                 user = await self.user_store.get(payload.user_id)
