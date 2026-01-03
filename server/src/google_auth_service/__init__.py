@@ -101,8 +101,9 @@ __all__ = [
 # Optional FastAPI integration
 try:
     from google_auth_service.fastapi_router import GoogleAuth
+    from google_auth_service.fastapi_middleware import GoogleAuthMiddleware
     from google_auth_service.user_store import BaseUserStore, InMemoryUserStore
     
-    __all__.extend(["GoogleAuth", "BaseUserStore", "InMemoryUserStore"])
+    __all__.extend(["GoogleAuth", "GoogleAuthMiddleware", "BaseUserStore", "InMemoryUserStore"])
 except ImportError:
     pass
