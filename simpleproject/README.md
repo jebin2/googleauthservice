@@ -1,34 +1,131 @@
 # Simple Project - Google Auth Demo
 
-A minimal demo application showing how to integrate google-auth-service.
+A complete demo showing how to use google-auth-service library from GitHub.
 
-## Quick Start
+---
 
-### 1. Set Environment Variables
+## Prerequisites
+
+1. **Google Cloud Console** - Create OAuth 2.0 credentials:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create/select a project
+   - Go to **APIs & Services → Credentials**
+   - Create **OAuth 2.0 Client ID** (Web application)
+   - Add authorized origins: `http://localhost:3000`, `http://localhost:5173`
+   - Copy the **Client ID**
+
+---
+
+## Step 1: Configure Environment
+
 ```bash
+cd simpleproject
 cp .env.example .env
-# Edit .env with your Google Client ID and JWT secret
 ```
 
-### 2. Run Backend
+Edit `.env` with your values:
+```env
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+JWT_SECRET=your-super-secret-key-at-least-32-characters
+```
+
+---
+
+## Step 2: Run Backend
+
 ```bash
 cd backend
+
+# Create virtual environment (recommended)
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# or: venv\Scripts\activate  # Windows
+
+# Install dependencies (includes google-auth-service from GitHub)
 pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
+
+# Run server
+python main.py
 ```
 
-### 3. Run Frontend
+Backend runs at: **http://localhost:8000**
+
+Test it:
+```bash
+curl http://localhost:8000/health
+# {"status":"healthy"}
+```
+
+---
+
+## Step 3: Run Frontend
+
 ```bash
 cd frontend
-# Open index.html in browser, or serve with:
-python -m http.server 3000
+
+# Install dependencies (includes @jebin2/googleauthservice from GitHub)
+npm install
+
+# Update Google Client ID in .env or directly in src/App.tsx
+# Look for: VITE_GOOGLE_CLIENT_ID
+
+# Run dev server
+npm run dev
 ```
 
-### 4. Test
-- Open http://localhost:3000
-- Click "Sign in with Google"
-- See authenticated user info
+Frontend runs at: **http://localhost:5173**
 
-## Files
-- `backend/main.py` - FastAPI app with Google auth endpoints
-- `frontend/index.html` - Simple HTML/JS demo page
+---
+
+## Step 4: Test the Flow
+
+1. Open http://localhost:5173 in browser
+2. Click **"Sign in with Google"**
+3. Authenticate with your Google account
+4. Click **"Test Protected API"** to call a protected endpoint
+5. Click **"Sign Out"** to logout
+
+---
+
+## API Endpoints (Backend)
+
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/` | GET | No | Health check |
+| `/health` | GET | No | Health check |
+| `/auth/google` | POST | No | Exchange Google ID token for JWT |
+| `/auth/me` | GET | Yes | Get current user info |
+| `/auth/logout` | POST | Yes | Logout (invalidate tokens) |
+| `/api/protected` | GET | Yes | Example protected endpoint |
+
+---
+
+## Project Structure
+
+```
+simpleproject/
+├── .env.example          # Environment template
+├── backend/
+│   ├── requirements.txt  # Python deps (installs from GitHub)
+│   └── main.py           # FastAPI server
+└── frontend/
+    ├── package.json      # Node deps (installs from GitHub)
+    └── src/
+        └── App.tsx       # React app using the library
+```
+
+---
+
+## How It Works
+
+**Backend** installs via pip:
+```
+google-auth-service @ git+https://github.com/jebin2/googleauthservice.git@main#subdirectory=server
+```
+
+**Frontend** installs via npm:
+```json
+"@jebin2/googleauthservice": "git+https://github.com/jebin2/googleauthservice.git"
+```
+
+Both install directly from GitHub - no npm/PyPI publishing needed!
