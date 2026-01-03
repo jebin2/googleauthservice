@@ -47,14 +47,18 @@ class GoogleAuth:
         self,
         user_saver: Callable[[GoogleUserInfo], Awaitable[Any]],
         user_loader: Callable[[str], Awaitable[Optional[Any]]],
+        token_version_getter: Optional[Callable[[str], Awaitable[Optional[int]]]] = None,
+        token_invalidator: Optional[Callable[[str], Awaitable[None]]] = None,
         prefix: str = "/auth",
     ) -> APIRouter:
         """
         Create a FastAPI router with auth endpoints.
         
         Args:
-            user_saver: Async func to save/update user from Google info. Returns user object.
-            user_loader: Async func to load user by ID. Returns user object.
+            user_saver: Async func to save/update user from Google info.
+            user_loader: Async func to load user by ID.
+            token_version_getter: Async func to get current token version for user.
+            token_invalidator: Async func to increment/invalidate user token version.
             prefix: URL prefix for the router (default: /auth)
         """
         router = APIRouter(prefix=prefix, tags=["Authentication"])
@@ -79,8 +83,17 @@ class GoogleAuth:
             user_id = getattr(user, "user_id", None) or user.get("user_id")
             email = getattr(user, "email", None) or user.get("email")
             
+            # Get current token version if supported
+            token_version = None
+            if token_version_getter:
+                token_version = await token_version_getter(user_id)
+
             # 3. Create Access Token
-            access_token = self.jwt.create_access_token(user_id=user_id, email=email)
+            access_token = self.jwt.create_access_token(
+                user_id=user_id, 
+                email=email,
+                token_version=token_version
+            )
             
             # 4. Set Cookie
             response.set_cookie(
@@ -99,7 +112,7 @@ class GoogleAuth:
                 "email": email,
                 "name": getattr(user, "name", None) or user.get("name"),
                 "picture": getattr(user, "picture", None) or user.get("picture"),
-                "is_new_user": getattr(google_info, "is_new_user", False), # If tracked
+                "is_new_user": getattr(google_info, "is_new_user", False),
             }
 
         @router.post("/refresh")
@@ -112,14 +125,29 @@ class GoogleAuth:
                 payload = self.jwt.verify_token(token)
             except Exception:
                 raise HTTPException(status_code=401, detail="Invalid session")
-                
+            
+            # Strict Token Version Check
+            if token_version_getter:
+                current_version = await token_version_getter(payload.user_id)
+                if current_version is not None and payload.version != current_version:
+                     response.delete_cookie(self.cookie_name)
+                     raise HTTPException(status_code=401, detail="Session revoked")
+
             # Load user to ensure they still exist
             user = await user_loader(payload.user_id)
             if not user:
                  raise HTTPException(status_code=401, detail="User not found")
 
-            # Create new token
-            new_token = self.jwt.create_access_token(user_id=payload.user_id, email=payload.email)
+            # Create new token with current version
+            token_version = payload.version
+            if token_version_getter:
+                 token_version = await token_version_getter(payload.user_id)
+
+            new_token = self.jwt.create_access_token(
+                user_id=payload.user_id, 
+                email=payload.email,
+                token_version=token_version
+            )
             
             response.set_cookie(
                 key=self.cookie_name,
@@ -144,7 +172,17 @@ class GoogleAuth:
             }
             
         @router.post("/logout")
-        async def logout(response: Response):
+        async def logout(response: Response, request: Request):
+            # Invalidate backend token if callback provided
+            if token_invalidator:
+                token = request.cookies.get(self.cookie_name)
+                if token:
+                    try:
+                        payload = self.jwt.verify_token(token)
+                        await token_invalidator(payload.user_id)
+                    except:
+                        pass # Ignore invalid tokens during logout
+            
             response.delete_cookie(self.cookie_name)
             return {"success": True, "message": "Logged out"}
             
@@ -165,6 +203,12 @@ class GoogleAuth:
                 payload = self.jwt.verify_token(token)
             except Exception:
                 raise HTTPException(status_code=401, detail="Invalid token")
+
+            # Strict Token Version Check
+            if token_version_getter:
+                current_version = await token_version_getter(payload.user_id)
+                if current_version is not None and payload.version != current_version:
+                     raise HTTPException(status_code=401, detail="Session revoked")
                 
             user = await user_loader(payload.user_id)
             if not user:
