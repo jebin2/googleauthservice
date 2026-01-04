@@ -81,6 +81,41 @@ class GoogleAuth:
                 
         return request.state.user
 
+    def verify_websocket(self, websocket) -> Optional[TokenPayload]:
+        """
+        Verify WebSocket connection authentication.
+        
+        Call this at the start of a WebSocket handler to validate the JWT cookie.
+        Returns TokenPayload if valid, None if invalid.
+        
+        Usage:
+            @app.websocket("/ws")
+            async def websocket_handler(websocket: WebSocket):
+                payload = auth.verify_websocket(websocket)
+                if not payload:
+                    await websocket.close(code=4001, reason="Not authenticated")
+                    return
+                
+                await websocket.accept()
+                # ... handle connection
+        
+        Args:
+            websocket: FastAPI WebSocket instance
+            
+        Returns:
+            TokenPayload if authenticated, None if not
+        """
+        jwt_cookie = websocket.cookies.get(self.cookie_name)
+        if not jwt_cookie:
+            return None
+        
+        try:
+            return self.jwt.verify_token(jwt_cookie)
+        except (TokenExpiredError, InvalidTokenError):
+            return None
+        except Exception:
+            return None
+
 
 
     def get_router(
